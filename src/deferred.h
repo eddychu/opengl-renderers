@@ -6,66 +6,83 @@
 class DeferredRenderer {
 public:
   void initResource(ResourceManager &resourceManager) {
-    uint32_t programIndex =
+    gPassProgramIndex =
         resourceManager.loadProgram("assets/shaders/deferred-g-pass.vert.glsl",
                                     "assets/shaders/deferred-g-pass.frag.glsl");
-    gPassProgram = &(resourceManager.getProgram(programIndex));
 
-    programIndex = resourceManager.loadProgram(
+    shadingProgramIndex = resourceManager.loadProgram(
         "assets/shaders/deferred-shading.vert.glsl",
         "assets/shaders/deferred-shading.frag.glsl");
 
-    shadingProgram = &(resourceManager.getProgram(programIndex));
+    const int SCR_WIDTH = 800;
+    const int SCR_HEIGHT = 600;
 
-    glCreateFramebuffers(1, &gBuffer);
-    glCreateTextures(GL_TEXTURE_2D, 1, &gPosition);
-    glTextureStorage2D(gPosition, 1, GL_RGBA16F, 800, 600);
-    glTextureSubImage2D(gPosition, 0, 0, 0, 800, 600, GL_RGBA, GL_FLOAT, NULL);
-    glTextureParameteri(gPosition, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTextureParameteri(gPosition, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glNamedFramebufferTexture(gBuffer, GL_COLOR_ATTACHMENT0, gPosition, 0);
+    glGenFramebuffers(1, &gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &gNormal);
-    glTextureStorage2D(gNormal, 1, GL_RGBA16F, 800, 600);
-    glTextureSubImage2D(gNormal, 0, 0, 0, 800, 600, GL_RGBA, GL_FLOAT, NULL);
-    glTextureParameteri(gNormal, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTextureParameteri(gNormal, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glNamedFramebufferTexture(gBuffer, GL_COLOR_ATTACHMENT1, gNormal, 0);
+    glGenTextures(1, &gPosition);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB,
+                 GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           gPosition, 0);
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &gAlbedo);
-    glTextureStorage2D(gAlbedo, 1, GL_RGBA, 800, 600);
-    glTextureSubImage2D(gAlbedo, 0, 0, 0, 800, 600, GL_RGBA, GL_FLOAT, NULL);
-    glTextureParameteri(gAlbedo, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTextureParameteri(gAlbedo, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glNamedFramebufferTexture(gBuffer, GL_COLOR_ATTACHMENT2, gAlbedo, 0);
+    // - normal color buffer
+    glGenTextures(1, &gNormal);
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB,
+                 GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                           gNormal, 0);
 
-    GLuint attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-                             GL_COLOR_ATTACHMENT2};
+    // - color + specular color buffer
+    glGenTextures(1, &gAlbedo);
+    glBindTexture(GL_TEXTURE_2D, gAlbedo);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB,
+                 GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D,
+                           gAlbedo, 0);
 
-    glNamedFramebufferDrawBuffers(gBuffer, 3, attachments);
+    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                                   GL_COLOR_ATTACHMENT2};
+    glDrawBuffers(3, attachments);
+
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH,
+                          SCR_HEIGHT);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                              GL_RENDERBUFFER, rboDepth);
 
     if (glCheckNamedFramebufferStatus(gBuffer, GL_FRAMEBUFFER) !=
         GL_FRAMEBUFFER_COMPLETE) {
       std::cout << "Framebuffer not complete!" << std::endl;
+      throw std::runtime_error("Framebuffer not complete!");
     }
-
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     quad = uploadGeometryToGPU(make_quad());
   }
 
   void gPass(Model &model, Camera &camera, ResourceManager &resourceManager) {
-    glViewport(0, 0, 800, 600);
     glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    gPassProgram->use();
+    auto &program = resourceManager.getProgram(gPassProgramIndex);
+    program.use();
     glm::mat4 projection = camera.getProjectionMatrix();
     glm::mat4 modelMatrix = model.transform.getMatrix();
     glm::mat4 view = camera.getViewMatrix();
     glm::mat4 mvp = projection * view * modelMatrix;
 
-    gPassProgram->setUniform("MVP", mvp);
-    gPassProgram->setUniform(
-        "NormalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
-    gPassProgram->setUniform("ModelMatrix", modelMatrix);
+    program.setUniform("MVP", mvp);
+    program.setUniform("NormalMatrix",
+                       glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+    program.setUniform("ModelMatrix", modelMatrix);
 
     for (int i = 0; i < model.geometryCount; i++) {
       auto &baseColorTexture =
@@ -75,28 +92,37 @@ public:
           resourceManager.getGPUGeometry(i + model.geometryStart);
       gpuGeometry.draw();
     }
-    glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  }
+
+  void useShadingProgram(ResourceManager &resourceManager) {
+    auto &shadingProgram = resourceManager.getProgram(shadingProgramIndex);
+    shadingProgram.use();
   }
 
   void render(Model &model, Camera &camera, ResourceManager &resourceManager) {
-    gPass(model, camera, resourceManager);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    shadingProgram->use();
+    auto &shadingProgram = resourceManager.getProgram(shadingProgramIndex);
+    // shadingProgram.use();
     // shadingProgram->setUniform("gPosition", 0);
     // shadingProgram->setUniform("gNormal", 1);
     // shadingProgram->setUniform("gAlbedo", 2);
-    glBindTextureUnit(0, gPosition);
-    glBindTextureUnit(1, gNormal);
-    glBindTextureUnit(2, gAlbedo);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, gAlbedo);
     quad.draw();
     glUseProgram(0);
   }
 
 private:
-  const Program *gPassProgram;
-  const Program *shadingProgram;
+  uint32_t gPassProgramIndex;
+  uint32_t shadingProgramIndex;
   GLuint gBuffer;
   GLuint gPosition, gNormal, gAlbedo;
+
+  GLuint rboDepth;
   GPUGeometry quad;
 };

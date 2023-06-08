@@ -45,7 +45,7 @@ void main()
 
         float attenuation = 1.0 /(5.0 + (lightDistance * lightDistance));
 
-        float NdotL = max(dot(vs_out.normal, lightDir), 0.0);
+        float NdotL = max(dot(normalize(vs_out.normal), lightDir), 0.0);
         diffuse += lightColor * lightIntensity * NdotL * attenuation;
     }
 

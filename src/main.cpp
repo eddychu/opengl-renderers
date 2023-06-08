@@ -74,8 +74,7 @@ int main() {
 
     renderer.initResource(resourceManager);
     
-    // uint32_t forwardProgramIndex = resourceManager.loadProgram("assets/shaders/forward.vert.glsl", "assets/shaders/forward.frag.glsl");
-    // glm::mat4 projection = camera.getProjectionMatrix();
+
 
     std::vector<PointLight> lights(200);
 
@@ -90,13 +89,13 @@ int main() {
 
     for(int i = 0; i < lights.size(); i++) {
         lights[i].position = glm::vec4(disX(gen), disY(gen), disZ(gen), 1.0f);
-        lights[i].color = glm::vec4(glm::linearRand(glm::vec3(0.0f), glm::vec3(0.1f)), 1.0f);
-        lights[i].intensity = glm::vec4(glm::linearRand(glm::vec3(0.0f), glm::vec3(0.1f)), 1.0f);
+        lights[i].color = glm::vec4(glm::linearRand(glm::vec3(0.3f), glm::vec3(1.0f)), 1.0f);
+        lights[i].intensity = glm::vec4(glm::linearRand(glm::vec3(0.0f), glm::vec3(2.0f)), 1.0f);
     }
     GLuint buffer;
     glCreateBuffers(1, &buffer);
     glNamedBufferData(buffer, sizeof(PointLight) * lights.size(), lights.data(), GL_DYNAMIC_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer, 0, sizeof(PointLight) * lights.size());
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer, 0, sizeof(PointLight) * lights.size()); 
 
 
 
@@ -106,6 +105,9 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         orbitControl.update(0.1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        renderer.gPass(model, camera, resourceManager);
+
 
         for(int i = 0; i < lights.size(); i++) {  
             if (lights[i].position.x > 10.0f) {
@@ -121,8 +123,11 @@ int main() {
             lights[i].position.x += movingSpeedX;
             lights[i].position.z += movingSpeedZ;
         }
+         
         glNamedBufferSubData(buffer, 0, sizeof(PointLight) * lights.size(), lights.data());
-
+        
+        renderer.useShadingProgram(resourceManager);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer, 0, sizeof(PointLight) * lights.size()); 
         renderer.render(model, camera, resourceManager);
      
         double currentTime = glfwGetTime();
