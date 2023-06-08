@@ -3,6 +3,9 @@
 #include "resource.h"
 #include "shape.h"
 #include <iostream>
+#include <random>
+#include <vector>
+
 class DeferredRenderer {
 public:
   void initResource(ResourceManager &resourceManager) {
@@ -67,6 +70,30 @@ public:
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     quad = uploadGeometryToGPU(make_quad());
+
+    lights.resize(300);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> disX(-10.0f, 10.0f);
+    std::uniform_real_distribution<float> disY(0.0f, 10.0f);
+    std::uniform_real_distribution<float> disZ(-10.0f, 10.0f);
+    // generate
+
+    for (int i = 0; i < lights.size(); i++) {
+      lights[i].position = glm::vec4(disX(gen), disY(gen), disZ(gen), 1.0f);
+      lights[i].color =
+          glm::vec4(glm::linearRand(glm::vec3(0.6f), glm::vec3(1.0f)), 1.0f);
+      lights[i].intensity =
+          glm::vec4(glm::linearRand(glm::vec3(0.3f), glm::vec3(2.0f)), 1.0f);
+    }
+    glCreateBuffers(1, &lightBuffer);
+    glNamedBufferData(lightBuffer, sizeof(PointLight) * lights.size(),
+                      lights.data(), GL_DYNAMIC_DRAW);
+
+    resourceManager.getProgram(shadingProgramIndex).use();
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, lightBuffer, 0,
+                      sizeof(PointLight) * lights.size());
+    glUseProgram(0);
   }
 
   void gPass(Model &model, Camera &camera, ResourceManager &resourceManager) {
@@ -101,12 +128,30 @@ public:
   }
 
   void render(Model &model, Camera &camera, ResourceManager &resourceManager) {
+    gPass(model, camera, resourceManager);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     auto &shadingProgram = resourceManager.getProgram(shadingProgramIndex);
-    // shadingProgram.use();
+    shadingProgram.use();
     // shadingProgram->setUniform("gPosition", 0);
     // shadingProgram->setUniform("gNormal", 1);
     // shadingProgram->setUniform("gAlbedo", 2);
+
+    for (int i = 0; i < lights.size(); i++) {
+      if (lights[i].position.x > 5.0f) {
+        movingSpeedX *= -1.0f;
+      } else if (lights[i].position.x < -5.0f) {
+        movingSpeedX *= -1.0f;
+      }
+      if (lights[i].position.z > 5.0f) {
+        movingSpeedZ *= -1.0f;
+      } else if (lights[i].position.z < -5.0f) {
+        movingSpeedZ *= -1.0f;
+      }
+      lights[i].position.x += movingSpeedX;
+      lights[i].position.z += movingSpeedZ;
+    }
+    glNamedBufferSubData(lightBuffer, 0, sizeof(PointLight) * lights.size(),
+                         lights.data());
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gPosition);
     glActiveTexture(GL_TEXTURE1);
@@ -125,4 +170,8 @@ private:
 
   GLuint rboDepth;
   GPUGeometry quad;
+  GLuint lightBuffer;
+  std::vector<PointLight> lights;
+  float movingSpeedX = 0.1f;
+  float movingSpeedZ = 0.1f;
 };

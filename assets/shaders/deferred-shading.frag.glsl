@@ -14,7 +14,7 @@ struct PointLight {
 };
 
 layout(std140, binding=0) uniform PointLights {
-    PointLight pointLights[200];
+    PointLight pointLights[300];
 };
 
 
@@ -24,7 +24,7 @@ void main() {
     vec3 albedo = texture(gAlbedoSpec, TexCoords).rgb;
 
     vec3 diffuse = vec3(0.0);
-    for(int i = 0; i < 200; i++) {
+    for(int i = 0; i < 300; i++) {
         vec3 lightPos = pointLights[i].position.xyz;
         vec3 lightColor = pointLights[i].color.xyz;
         float lightRadius = pointLights[i].radius.w;

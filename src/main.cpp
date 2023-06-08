@@ -34,14 +34,14 @@ int main() {
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 
-        glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
 
     glfwSwapInterval(0);
 
 
 
-     IMGUI_CHECKVERSION();
+    IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
@@ -73,61 +73,17 @@ int main() {
     DeferredRenderer renderer;
 
     renderer.initResource(resourceManager);
-    
-
-
-    std::vector<PointLight> lights(200);
-
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> disX(-10.0f, 10.0f);
-    std::uniform_real_distribution<float> disY(0.0f, 10.0f);
-    std::uniform_real_distribution<float> disZ(-10.0f, 10.0f);
-    // generate
-    
-
-    for(int i = 0; i < lights.size(); i++) {
-        lights[i].position = glm::vec4(disX(gen), disY(gen), disZ(gen), 1.0f);
-        lights[i].color = glm::vec4(glm::linearRand(glm::vec3(0.3f), glm::vec3(1.0f)), 1.0f);
-        lights[i].intensity = glm::vec4(glm::linearRand(glm::vec3(0.0f), glm::vec3(2.0f)), 1.0f);
-    }
-    GLuint buffer;
-    glCreateBuffers(1, &buffer);
-    glNamedBufferData(buffer, sizeof(PointLight) * lights.size(), lights.data(), GL_DYNAMIC_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer, 0, sizeof(PointLight) * lights.size()); 
-
 
 
     double lastTime = glfwGetTime();
-    float movingSpeedX = 0.2f;
-    float movingSpeedZ = 0.2f;
     while (!glfwWindowShouldClose(window)) {
         orbitControl.update(0.1f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        renderer.gPass(model, camera, resourceManager);
-
-
-        for(int i = 0; i < lights.size(); i++) {  
-            if (lights[i].position.x > 10.0f) {
-                movingSpeedX *= -1.0f;
-            } else if(lights[i].position.x < -10.0f) {
-                movingSpeedX *= -1.0f;
-            }
-            if (lights[i].position.z > 10.0f) {
-                movingSpeedZ *= -1.0f;
-            } else if(lights[i].position.z < -10.0f) {
-                movingSpeedZ *= -1.0f;
-            }
-            lights[i].position.x += movingSpeedX;
-            lights[i].position.z += movingSpeedZ;
-        }
-         
-        glNamedBufferSubData(buffer, 0, sizeof(PointLight) * lights.size(), lights.data());
+        // renderer.gPass(model, camera, resourceManager);
         
-        renderer.useShadingProgram(resourceManager);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer, 0, sizeof(PointLight) * lights.size()); 
+        // renderer.useShadingProgram(resourceManager);
+        // glBindBufferRange(GL_UNIFORM_BUFFER, 0, buffer, 0, sizeof(PointLight) * lights.size()); 
         renderer.render(model, camera, resourceManager);
      
         double currentTime = glfwGetTime();
@@ -152,8 +108,6 @@ int main() {
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        // print camera position
-        fprintf(stderr, "camera position: %s\n", glm::to_string(camera.getPosition()).c_str());
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
