@@ -9,6 +9,14 @@ public:
     view = glm::lookAt(position, target, glm::vec3(0.0f, 1.0f, 0.0f));
   }
 
+  const glm::vec3 getFront() const {
+    return glm::vec3(view[0][2], view[1][2], view[2][2]);
+  }
+
+  const glm::vec3 getRight() const {
+    return glm::vec3(view[0][0], view[1][0], view[2][0]);
+  }
+
   const glm::mat4 &getProjectionMatrix() const { return projection; }
   const glm::mat4 &getViewMatrix() const { return view; }
 

@@ -22,6 +22,12 @@ struct Geometry {
   void calcTangents();
 };
 
+struct PointLight {
+  glm::vec4 position{0.0f, 0.0, 0.0f, 1.0f};
+  glm::vec4 color{1.0f};
+  glm::vec4 intensity{1.0f}; // w is radius
+};
+
 struct GPUGeometry {
   GLuint vao;
   GLuint vbo;
@@ -37,9 +43,9 @@ GPUGeometry uploadGeometryToGPU(const Geometry &geometry);
 
 struct Material {
   glm::vec4 baseColorFactor;
-  int32_t baseColorTexture;
-  int32_t normalTexture;
-  int32_t metallicRoughnessTexture;
+  int32_t baseColorTexture{-1};
+  int32_t normalTexture{-1};
+  int32_t metallicRoughnessTexture{-1};
   float alphaCutoff;
   bool doubleSided;
 };
@@ -120,6 +126,22 @@ struct Texture {
   void loadFromFile(const std::string &path, bool flip = false);
 };
 
+struct GPUTexture {
+  GLuint texture;
+};
+
+struct GPUBuffer {
+  GLuint buffer;
+  GPUBuffer(size_t size, void *data) {
+    glCreateBuffers(1, &buffer);
+    glNamedBufferData(buffer, size, data, 0);
+  }
+
+  void upload(size_t size, void *data) {
+    glNamedBufferSubData(buffer, 0, size, data);
+  }
+};
+
 typedef std::variant<int, float, glm::vec2, glm::vec3, glm::vec4, glm::mat4,
                      glm::mat3, glm::ivec2>
     GLUniformValue;
@@ -146,9 +168,10 @@ public:
   uint32_t loadProgram(const std::string &vertexPath,
                        const std::string &fragmentPath);
 
-  uint32_t uploadGeometry(uint32_t i);
+  // uint32_t uploadGeometry(uint32_t i);
+  // uint32_t uploadTexture(uint32_t i);
 
-  void addTexture(const Texture &texture) { textures.push_back(texture); }
+  // void addTexture(const Texture &texture) { textures.push_back(texture); }
 
   const GPUGeometry &getGPUGeometry(uint32_t i) const {
     return gpuGeometries[i];
@@ -156,13 +179,16 @@ public:
 
   const Program &getProgram(uint32_t i) const { return programs[i]; }
 
+  const GPUTexture &getGPUTexture(uint32_t i) const { return gpuTextures[i]; }
+
   void cleanup();
 
 private:
-  std::vector<Geometry> geometries;
-  std::vector<Texture> textures;
+  // std::vector<Geometry> geometries;
+  // std::vector<Texture> textures;
   std::vector<Program> programs;
   std::vector<GPUGeometry> gpuGeometries;
+  std::vector<GPUTexture> gpuTextures;
 };
 
 GLuint createShader(const std::string &path, GLenum type);
