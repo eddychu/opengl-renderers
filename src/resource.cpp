@@ -388,6 +388,13 @@ uint32_t ResourceManager::loadProgram(const std::string &vertexPath,
   return programs.size() - 1;
 }
 
+uint32_t ResourceManager::loadComputeProgram(const std::string &computePath) {
+  Program program;
+  program.loadComputeFromFile(computePath);
+  programs.push_back(program);
+  return programs.size() - 1;
+}
+
 void ResourceManager::cleanup() {
   // geometries.clear();
   // textures.clear();
@@ -431,6 +438,24 @@ GLuint createShader(const std::string &path, GLenum type) {
                              infoLog);
   }
   return shader;
+}
+
+GLuint createComputeProgram(const std::string &computePath) {
+  GLuint computeShader = createShader(computePath, GL_COMPUTE_SHADER);
+  GLuint program = glCreateProgram();
+  glAttachShader(program, computeShader);
+  glLinkProgram(program);
+  GLint success;
+  glGetProgramiv(program, GL_LINK_STATUS, &success);
+  if (!success) {
+    char infoLog[512];
+    glGetProgramInfoLog(program, 512, NULL, infoLog);
+    spdlog::error("Failed to link program: {}\n{}", computePath, infoLog);
+    throw std::runtime_error("Failed to link program: " + computePath + "\n" +
+                             infoLog);
+  }
+  glDeleteShader(computeShader);
+  return program;
 }
 
 GLuint createProgram(const std::string &vertexPath,
@@ -491,6 +516,11 @@ void Program::populateUniforms() {
   }
 
   glUseProgram(0);
+}
+
+void Program::loadComputeFromFile(const std::string &computePath) {
+  program = createComputeProgram(computePath);
+  populateUniforms();
 }
 
 void Program::setUniform(const std::string &name, GLUniformValue value) const {

@@ -4,6 +4,7 @@
 #include "controls.h"
 #include "deferred.h"
 #include "forward.h"
+#include "forwardplus.h"
 #include <GLFW/glfw3.h>
 #include <random>
 #include <resource.h>
@@ -70,7 +71,8 @@ int main() {
     OrbitControl orbitControl(&camera, window, distance);
 
     // ForwardRenderer renderer;
-    DeferredRenderer renderer;
+    // DeferredRenderer renderer;
+    ForwardPlusRenderer renderer;
 
     renderer.initResource(resourceManager);
 

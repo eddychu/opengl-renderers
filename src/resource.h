@@ -158,6 +158,8 @@ struct Program {
   void loadFromFile(const std::string &vertexPath,
                     const std::string &fragmentPath);
 
+  void loadComputeFromFile(const std::string &computePath);
+
   void populateUniforms();
 };
 
@@ -167,6 +169,8 @@ public:
 
   uint32_t loadProgram(const std::string &vertexPath,
                        const std::string &fragmentPath);
+
+  uint32_t loadComputeProgram(const std::string &computePath);
 
   // uint32_t uploadGeometry(uint32_t i);
   // uint32_t uploadTexture(uint32_t i);
@@ -195,3 +199,5 @@ GLuint createShader(const std::string &path, GLenum type);
 
 GLuint createProgram(const std::string &vertexPath,
                      const std::string &fragmentPath);
+
+GLuint createComputeProgram(const std::string &computePath);

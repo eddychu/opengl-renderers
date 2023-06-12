@@ -13,7 +13,7 @@ public:
         "assets/shaders/forward.vert.glsl", "assets/shaders/forward.frag.glsl");
     program = &(resourceManager.getProgram(programIndex));
 
-    lights.resize(200);
+    lights.resize(1024);
 
     std::random_device rd;
     std::mt19937 gen(rd());
