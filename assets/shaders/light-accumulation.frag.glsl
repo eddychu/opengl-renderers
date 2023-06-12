@@ -64,11 +64,13 @@ void main() {
 
         vec3 lightDirection = normalize(lightL);
 
+        vec3 lightIntensity = light.radius.xyz;
+
         vec3 halfVector = normalize(lightDirection + viewDirection);
 
         float diffuse = max(dot(vs_out.normal, lightDirection), 0.0);
 
-        color.rgb += diffuse * lightColor.rgb * lightAttenuation;
+        color.rgb += diffuse * lightColor.rgb * lightAttenuation * lightIntensity;
      }
 
      vec3 final = albedo * color;

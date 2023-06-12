@@ -1,8 +1,8 @@
 #version 430
 
 struct PointLight {
-	vec4 color;
 	vec4 position;
+	vec4 color;
 	vec4 paddingAndRadius;
 };
 

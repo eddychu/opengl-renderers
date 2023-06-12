@@ -26,8 +26,8 @@ public:
       lights[i].position = glm::vec4(disX(gen), disY(gen), disZ(gen), 1.0f);
       lights[i].color =
           glm::vec4(glm::linearRand(glm::vec3(0.6f), glm::vec3(1.0f)), 1.0f);
-      lights[i].intensity =
-          glm::vec4(glm::linearRand(glm::vec3(0.3f), glm::vec3(2.0f)), 1.0f);
+      lights[i].intensity = glm::vec4(
+          glm::linearRand(glm::vec3(0.0f), glm::vec3(1.0f / 5.0)), 1.0f);
     }
     glCreateBuffers(1, &lightBuffer);
     glNamedBufferData(lightBuffer, sizeof(PointLight) * lights.size(),
