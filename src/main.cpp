@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <random>
 #include <resource.h>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <stdint.h>
 #include <vector>
